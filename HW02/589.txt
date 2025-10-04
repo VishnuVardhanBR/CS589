@@ -1,0 +1,164 @@
+1 a. The OOD problem refers to the out-of-distribution problem, which happens when the data used for training and testing a model comes from one distribution (P), but the model is deployed on future data from a different distribution (Q). Since Q is unknown during training, performance is usually estimated on a test set from P. If P and Q differ, this estimate can be misleading. In practice, real-world data often shifts over time, so test accuracy on P may not reflect true performance on Q. This distribution shift is the core of the OOD problem.
+
+
+1 b. 
+If a binary logistic regression model shows much lower training error than test error, this indicates overfitting. The model has adapted too closely to the training data and fails to generalize well to unseen data, leading to poor test performance. This usually occurs from choosing a classifier with too much capacity that it even models the noise from the training data. 
+
+We can use regularisation to mitigate this by adding a penalty term to the loss function, to discourage overly complex models and improving performance. 
+
+
+\section*{Question 2}
+
+\subsection*{(a) Show the alternative PMF expression is valid.}
+We need to show that $P(X=x_{n})=\pi_{0}^{\mathbb{I}(x_{n}=0)}\cdot\pi_{1}^{\mathbb{I}(x_{n}=1)}$ reduces to $P(X=x_{n})=\pi_{x_{n}}$ for $x_n \in \{0, 1\}$.
+
+\textbf{Case 1: $x_n = 0$}
+$$ P(X=0) = \pi_{0}^{\mathbb{I}(0=0)} \cdot \pi_{1}^{\mathbb{I}(0=1)} = \pi_{0}^{1} \cdot \pi_{1}^{0} = \pi_0 $$
+
+\textbf{Case 2: $x_n = 1$}
+$$ P(X=1) = \pi_{0}^{\mathbb{I}(1=0)} \cdot \pi_{1}^{\mathbb{I}(1=1)} = \pi_{0}^{0} \cdot \pi_{1}^{1} = \pi_1 $$
+Both cases work, so the expression is valid.
+
+\subsection*{(b) Expand the negative average log likelihood function.}
+Starting with the given formula:
+$$ nall(\pi, \mathcal{D}) = -\frac{1}{N_{tr}}\sum_{n=1}^{N_{tr}}\log P(X=x_{n}) $$
+Substitute the PMF from part (a):
+\begin{align*}
+    nall(\pi, \mathcal{D}) &= -\frac{1}{N_{tr}}\sum_{n=1}^{N_{tr}}\log \left( \pi_{0}^{\mathbb{I}(x_{n}=0)}\cdot\pi_{1}^{\mathbb{I}(x_{n}=1)} \right) \\
+    &= -\frac{1}{N_{tr}}\sum_{n=1}^{N_{tr}} \left[ \log(\pi_{0}^{\mathbb{I}(x_{n}=0)}) + \log(\pi_{1}^{\mathbb{I}(x_{n}=1)}) \right] \\
+    &= -\frac{1}{N_{tr}}\sum_{n=1}^{N_{tr}} \left[ \mathbb{I}(x_{n}=0)\log(\pi_{0}) + \mathbb{I}(x_{n}=1)\log(\pi_{1}) \right]
+\end{align*}
+Let $N_0$ be the count of $x_n=0$ and $N_1$ be the count of $x_n=1$. The sum simplifies to:
+$$ nall(\pi, \mathcal{D}) = -\frac{1}{N_{tr}} \left[ N_0 \log(\pi_0) + N_1 \log(\pi_1) \right] $$
+
+\subsection*{(c) Find the constraints on the new parameter $\phi$.}
+The original parameters must satisfy $\pi_0 \ge 0$ and $\pi_1 \ge 0$. With the new parameterization $\pi_1 = \phi$ and $\pi_0 = 1 - \phi$:
+\begin{itemize}
+    \item The constraint $\pi_1 \ge 0$ becomes $\phi \ge 0$.
+    \item The constraint $\pi_0 \ge 0$ becomes $1 - \phi \ge 0$, which means $\phi \le 1$.
+\end{itemize}
+Combining these, the new parameter $\phi$ is constrained by $0 \le \phi \le 1$.
+
+\subsection*{(d) Re-write the nall function in terms of $\phi$.}
+Using the result from part (b) and substituting $\pi_0 = 1-\phi$ and $\pi_1 = \phi$:
+$$ nall(\phi, \mathcal{D}) = -\frac{1}{N_{tr}} \left[ N_0 \log(1-\phi) + N_1 \log(\phi) \right] $$
+
+\subsection*{(e) Find the derivative of $nall(\phi, \mathcal{D})$.}
+To find the derivative with respect to $\phi$, we apply the chain rule:
+\begin{align*}
+    \frac{d}{d\phi}nall(\phi, \mathcal{D}) &= -\frac{1}{N_{tr}} \frac{d}{d\phi} \left[ N_0 \log(1-\phi) + N_1 \log(\phi) \right] \\
+    &= -\frac{1}{N_{tr}} \left[ N_0 \cdot \frac{1}{1-\phi}(-1) + N_1 \cdot \frac{1}{\phi} \right] \\
+    &= -\frac{1}{N_{tr}} \left[ \frac{N_1}{\phi} - \frac{N_0}{1-\phi} \right]
+\end{align*}
+
+\subsection*{(f) Solve for the optimal estimator $\hat{\phi}$.}
+We set the derivative to zero to find the minimum:
+\begin{align*}
+    -\frac{1}{N_{tr}} \left[ \frac{N_1}{\phi} - \frac{N_0}{1-\phi} \right] &= 0 \\
+    \frac{N_1}{\phi} - \frac{N_0}{1-\phi} &= 0 \\
+    \frac{N_1}{\phi} &= \frac{N_0}{1-\phi} \\
+    N_1(1-\phi) &= N_0\phi \\
+    N_1 - N_1\phi &= N_0\phi \\
+    N_1 &= (N_0 + N_1)\phi
+\end{align*}
+Solving for $\phi$ gives us the optimal estimator, $\hat{\phi}$:
+$$ \hat{\phi} = \frac{N_1}{N_0 + N_1} = \frac{N_1}{N_{tr}} $$
+
+\subsection*{(g) Show that the optimal values satisfy the constraints.}
+The optimal parameters are $\hat{\pi}_1 = \hat{\phi} = \frac{N_1}{N_{tr}}$ and $\hat{\pi}_0 = 1 - \hat{\phi} = 1 - \frac{N_1}{N_{tr}} = \frac{N_0}{N_{tr}}$.
+
+\textbf{Normalization Check:}
+$$ \hat{\pi}_0 + \hat{\pi}_1 = \frac{N_0}{N_{tr}} + \frac{N_1}{N_{tr}} = \frac{N_0 + N_1}{N_{tr}} = \frac{N_{tr}}{N_{tr}} = 1 $$
+The normalization constraint is satisfied.
+
+\textbf{Non-negativity Check:}
+\begin{itemize}
+    \item For $\hat{\pi}_1$: Since $N_1$ is a count, $N_1 \ge 0$. And $N_{tr} > 0$ for any dataset. So, $\hat{\pi}_1 = \frac{N_1}{N_{tr}} \ge 0$.
+    \item For $\hat{\pi}_0$: Similarly, $N_0 \ge 0$ and $N_{tr} > 0$. So, $\hat{\pi}_0 = \frac{N_0}{N_{tr}} \ge 0$.
+\end{itemize}
+The non-negativity constraint is also satisfied. Thus, the estimator is valid.
+
+
+
+
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{geometry}
+\geometry{a4paper, margin=1in}
+
+\title{CS589 Homework 2 Solution}
+\author{Your Name Here}
+\date{September 24, 2025}
+
+\begin{document}
+
+\maketitle
+
+\section*{Question 3: Learning for Multi-Class Logistic Regression}
+
+\subsection*{Part (a): Simplifying the Objective Function}
+
+The negative average log-likelihood (NALL) is defined as
+\[
+nall(\theta,\mathcal{D}_{tr})=-\frac{1}{N_{tr}}\sum_{n=1}^{N_{tr}}\log P(Y=y_{n}\mid X=x_{n}).
+\]
+
+For the multi-class logistic regression model, the class probabilities are
+\[
+P(Y=c\mid x)=\frac{\exp(w_{c}^{T}x+b_{c})}{\sum_{c^{\prime}=1}^{C}\exp(w_{c^{\prime}}^{T}x+b_{c^{\prime}})}.
+\]
+
+Substituting this expression into the NALL yields
+\[
+nall(\theta,\mathcal{D}_{tr})=-\frac{1}{N_{tr}}\sum_{n=1}^{N_{tr}}\log \left( \frac{\exp(w_{y_n}^{T}x_n+b_{y_n})}{\sum_{c^{\prime}=1}^{C}\exp(w_{c^{\prime}}^{T}x_n+b_{c^{\prime}})} \right).
+\]
+
+Using the logarithmic identity $\log(A/B)=\log(A)-\log(B)$, this becomes
+\[
+nall(\theta,\mathcal{D}_{tr})=-\frac{1}{N_{tr}}\sum_{n=1}^{N_{tr}} \left[ (w_{y_n}^{T}x_n+b_{y_n}) - \log\left(\sum_{c^{\prime}=1}^{C}\exp(w_{c^{\prime}}^{T}x_n+b_{c^{\prime}})\right) \right].
+\]
+
+Finally, distributing the negative sign gives the simplified objective:
+\[
+nall(\theta,\mathcal{D}_{tr})=\frac{1}{N_{tr}}\sum_{n=1}^{N_{tr}} \left[ \log\left(\sum_{c^{\prime}=1}^{C}\exp(w_{c^{\prime}}^{T}x_n+b_{c^{\prime}})\right) - (w_{y_n}^{T}x_n+b_{y_n}) \right].
+\]
+
+\subsection*{Part (b): Deriving the Gradient}
+
+The gradient of the objective with respect to $w_1$ is
+\[
+\nabla_{w_1} nall(\theta,\mathcal{D}_{tr}) = \frac{\partial}{\partial w_1} \left( \frac{1}{N_{tr}}\sum_{n=1}^{N_{tr}} \Big[ \log\!\left(\sum_{c^{\prime}=1}^{C}\exp(w_{c^{\prime}}^{T}x_n+b_{c^{\prime}})\right) - (w_{y_n}^{T}x_n+b_{y_n}) \Big] \right).
+\]
+
+Moving the derivative inside the sum, consider a single example $n$:
+
+\[
+\frac{\partial}{\partial w_1} \Big[ \cdot \Big] = 
+\underbrace{\frac{\partial}{\partial w_1} \log\left(\sum_{c^{\prime}=1}^{C}\exp(w_{c^{\prime}}^{T}x_n+b_{c^{\prime}})\right)}_{\text{Term 1}}
+-
+\underbrace{\frac{\partial}{\partial w_1} (w_{y_n}^{T}x_n+b_{y_n})}_{\text{Term 2}}.
+\]
+
+For Term 1, applying the chain rule:
+\[
+\frac{\partial}{\partial w_1}\log(\cdot) 
+= \frac{\exp(w_1^T x_n + b_1)}{\sum_{c^{\prime}=1}^{C}\exp(w_{c^{\prime}}^{T}x_n+b_{c^{\prime}})} \, x_n
+= P(Y=1\mid x_n)\,x_n.
+\]
+
+For Term 2, the derivative is nonzero only when $y_n=1$:
+\[
+\frac{\partial}{\partial w_1} (w_{y_n}^{T}x_n+b_{y_n}) = \mathbb{I}(y_n=1)\,x_n,
+\]
+where $\mathbb{I}$ is the indicator function.
+
+Thus, the gradient contribution from a single sample is
+\[
+\big(P(Y=1\mid x_n)-\mathbb{I}(y_n=1)\big)x_n.
+\]
+
+Summing over all $n$ gives
+\[
+\nabla_{w_1} nall(\theta,\mathcal{D}_{tr})=\frac{1}{N_{tr}}\sum_{n=1}^{N_{tr}}\big(P(Y=1\mid x_n)-\mathbb{I}(y_n=1)\big)x_n.
+\]
