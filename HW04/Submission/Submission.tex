@@ -1,0 +1,248 @@
+\documentclass[11pt]{article}
+\usepackage{amsmath}
+\usepackage{geometry}
+\geometry{margin=1in}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{amssymb} % Added for \mathbb
+\pagecolor{white}
+\usepackage{float}
+% --- Author and Title Information ---
+\title{CS589: Machine Learning: Homework 4}
+\author{Vishnu Vardhan Reddy Bheem Reddy}
+
+\begin{document}
+
+\maketitle
+
+% ================================
+\section*{Question 1: The Constant Regressor}
+\noindent
+We are given the model $f(x) = b$ and the mean squared error (MSE) loss function:
+$$ L(b) = \frac{1}{N} \sum_{i=1}^{N} (y_i - f(x_i))^2 = \frac{1}{N} \sum_{i=1}^{N} (y_i - b)^2 $$
+To find the value of $b$ that minimizes this loss, we take the derivative of $L(b)$ with respect to $b$ and set it to zero.
+
+\begin{align*}
+\frac{dL}{db} &= \frac{d}{db} \left[ \frac{1}{N} \sum_{i=1}^{N} (y_i - b)^2 \right] \\
+&= \frac{1}{N} \sum_{i=1}^{N} \frac{d}{db} (y_i - b)^2 \\
+&= \frac{1}{N} \sum_{i=1}^{N} 2(y_i - b) \cdot (-1) \quad \text{(using the chain rule)} \\
+&= -\frac{2}{N} \sum_{i=1}^{N} (y_i - b)
+\end{align*}
+
+Now, we set the derivative to zero and solve for $\hat{b}$:
+\begin{align*}
+0 &= -\frac{2}{N} \sum_{i=1}^{N} (y_i - \hat{b}) \\
+0 &= \sum_{i=1}^{N} (y_i - \hat{b}) \\
+0 &= \left( \sum_{i=1}^{N} y_i \right) - \left( \sum_{i=1}^{N} \hat{b} \right) \\
+0 &= \left( \sum_{i=1}^{N} y_i \right) - N \hat{b} \\
+N \hat{b} &= \sum_{i=1}^{N} y_i \\
+\hat{b} &= \frac{1}{N} \sum_{i=1}^{N} y_i
+\end{align*}
+This shows that the $\hat{b}$ is the mean of the target values $y_i$.
+
+% ================================
+\section*{Question 2: Ridge Regression Derivation}
+\noindent
+The optimization problem is:
+$$ \hat{w} = \arg \min_{w} \left( \left( \frac{1}{N} \sum_{i=1}^{N} (y_i - w^\top x_i)^2 \right) + \lambda \|w\|_2^2 \right) $$
+
+\subsection*{a. Objective Function in Matrix Form}
+\noindent
+We are given the output vector $Y$ ($N \times 1$), the input matrix $X$ ($N \times D$), and the weight vector $w$ ($D \times 1$).
+The vector of errors is $Y - Xw$.
+The sum of squared errors is $\|Y - Xw\|_2^2 = (Y - Xw)^\top (Y - Xw)$.
+The $L_2$-regularizer is $\lambda \|w\|_2^2 = \lambda w^\top w$.
+The full objective function $J(w)$ is:
+$$ J(w) = \frac{1}{N} (Y - Xw)^\top (Y - Xw) + \lambda w^\top w $$
+
+\subsection*{b. Gradient of the Objective Function}
+\noindent
+First, we expand the objective:
+$$ J(w) = \frac{1}{N} (Y^\top Y - 2w^\top X^\top Y + w^\top X^\top Xw) + \lambda w^\top w $$
+Taking the gradient $\nabla_w J(w)$ term by term, using the provided matrix calculus results:
+\begin{align*}
+\nabla_w J(w) &= \frac{1}{N} \nabla_w (Y^\top Y - 2w^\top X^\top Y + w^\top X^\top Xw) + \nabla_w (\lambda w^\top w) \\
+&= \frac{1}{N} (0 - 2X^\top Y + (X^\top X + (X^\top X)^\top)w) + \lambda(2I w) \\
+&= \frac{1}{N} (-2X^\top Y + 2X^\top X w) + 2\lambda w \quad (\text{since } X^\top X \text{ is symmetric}) \\
+\nabla_w J(w) &= -\frac{2}{N} X^\top Y + \frac{2}{N} X^\top X w + 2\lambda w
+\end{align*}
+
+\subsection*{c. Solving for the Optimal Parameters}
+\noindent
+Set the gradient to zero to find the optimal $\hat{w}$:
+$$ 0 = -\frac{2}{N} X^\top Y + \frac{2}{N} X^\top X \hat{w} + 2\lambda \hat{w} $$
+Multiply the entire equation by $N/2$:
+$$ 0 = -X^\top Y + X^\top X \hat{w} + N\lambda \hat{w} $$
+Isolate terms with $\hat{w}$:
+$$ X^\top X \hat{w} + N\lambda I \hat{w} = X^\top Y $$
+Factor $\hat{w}$ out:
+$$ (X^\top X + N\lambda I) \hat{w} = X^\top Y $$
+Then, pre-multiply by the inverse:
+$$ \hat{w} = (X^\top X + N\lambda I)^{-1} X^\top Y $$
+
+% ================================
+\section*{Question 3: Ridge Regression Implementation}
+\noindent
+
+\subsection*{a. Implement predict}
+\noindent
+N/A.
+
+\subsection*{b. Implement fit}
+\noindent
+N/A.
+
+\subsection*{c. $\lambda=0$ Check}
+\noindent
+The MSEs for our Ridge Regressor with $\lambda=0$ are compared to scikit-learn's OLS Linear Regression. The results match, confirming correctness.
+
+\begin{itemize}
+    \item \textbf{Our RidgeRegressor ($\lambda=0$):}
+    \begin{itemize}
+        \item Train MSE: 9.0189
+        \item Valid MSE: 10.9152
+        \item Test MSE:  8.1723
+    \end{itemize}
+    \item \textbf{sklearn.linear\_model.LinearRegression:}
+    \begin{itemize}
+        \item Train MSE: 9.0189
+        \item Valid MSE: 10.9152
+        \item Test MSE:  8.1723
+    \end{itemize}
+\end{itemize}
+
+\subsection*{d. $\lambda \to \infty$ Check}
+\noindent
+The MSEs for our Ridge Regressor with a large lambda are compared to the Constant Regressor. The results are almost identical, confirming the correctness.
+
+\begin{itemize}
+    \item \textbf{Our RidgeRegressor ($\lambda=10^5$):}
+    \begin{itemize}
+        \item Train MSE: 18.1534
+        \item Valid MSE: 23.5467
+        \item Test MSE:  17.6016
+    \end{itemize}
+    \item \textbf{Constant Regressor:}
+    \begin{itemize}
+        \item Train MSE: 18.1542
+        \item Valid MSE: 23.5476
+        \item Test MSE:  17.6024
+    \end{itemize}
+\end{itemize}
+
+\subsection*{e. Hyper-parameter Optimization}
+\noindent
+The following graph shows the training and validation MSE as a function of the regularization strength $\lambda$ on a log scale.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\textwidth]{q3e_plot.png}
+\caption{Ridge Regression MSE vs. Regularization Strength ($\lambda$). }
+\label{fig:q3e_plot}
+\end{figure}
+
+\subsection*{f. Optimal $\lambda$ and Final Results}
+\noindent
+Based on the above experiment, the optimal value of $\lambda$ is the one that minimized the validation MSE. The final results are  below.
+
+\begin{itemize}
+    \item \textbf{Optimal Lambda ($\lambda^*$):} 0.001099
+    \item \textbf{Train MSE (at $\lambda^*$):} 9.1002
+    \item \textbf{Validation MSE (at $\lambda^*$):} 10.8294
+    \item \textbf{Test MSE (at $\lambda^*$):} 7.8752
+\end{itemize}
+
+
+% ================================
+% ================================
+\section*{Question 4: Regularization Paths}
+\noindent
+
+\subsection*{a. Ridge Regularization Path}
+\noindent
+The following graph shows the regularization paths for the eight feature weights using Ridge (L2) regression as the regularization strength $\alpha$ increases. The weights shrink towards zero but do not become exactly zero.
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.8\textwidth]{q4a_ridge_path.png}
+\caption{Regularization paths for Ridge (L2) regression coefficients vs. $\alpha$. }
+\label{fig:q4a_path}
+\end{figure}
+
+\subsection*{b. Lasso Regularization Path}
+\noindent
+The following graph shows the regularization paths for the eight feature weights using Lasso (L1) regression as the regularization strength $\alpha$ increases. Many coefficients are forced to exactly zero.
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.8\textwidth]{q4b_lasso_path.png}
+\caption{Regularization paths for Lasso (L1) regression coefficients vs. $\alpha$.}
+\label{fig:q4b_path}
+\end{figure}
+
+\subsection*{c. Comparison of Regularization Paths}
+\noindent
+When comparing the graphs, some differences are clear:
+
+In the \textbf{Lasso} regularization path plot (b), many of the feature weights are forced to be \textbf{exactly zero} as the regularization strength $\alpha$ increases.
+
+In contrast, the \textbf{Ridge} regularization path plot (a) shows the weights shrinking \textit{towards} zero, but they do not become exactly zero, even for  large values of $\alpha$.
+
+
+\begin{itemize}
+    \item \textbf{Lasso } The L1 penalty promotes sparse solutions. This means it performs automatic feature selection by setting the coefficients of less important features to exactly zero.
+    \item \textbf{Ridge } The L2 penalty shrinks all coefficients proportionally to penalize large weights but does not force them to be exactly zero. It retains all features in the final model.
+\end{itemize}
+
+% ================================
+\section*{Question 5: Bagging}
+\noindent
+
+\subsection*{a. Train-Test Split}
+\noindent
+After splitting the dataset (80\% train, 20\% test, with \texttt{random\_state=0}), the sizes of the resulting sets are:
+\begin{itemize}
+    \item \textbf{Training set size:} 16,512
+    \item \textbf{Test set size:} 4,128
+\end{itemize}
+
+\subsection*{b. Resample Function}
+\noindent
+After applying the `resample` function to the training data set
+\begin{itemize}
+    \item \textbf{Original training cases not included:} 36.54\%
+\end{itemize}
+
+\subsection*{c. Implement BaggedTrees fit}
+\noindent
+N/A.
+
+\subsection*{d. Implement BaggedTrees predict}
+\noindent
+N/A.
+
+\subsection*{e. Learning Experiment}
+\noindent
+The following plot shows the Training MSE and Test MSE as a function of the ensemble size, $K$.
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.8\textwidth]{q5e_plot.png}
+\caption{Bagged Trees MSE vs. Ensemble Size ($K$). }
+\label{fig:q5e_plot}
+\end{figure}
+
+\subsection*{f. Analysis}
+\noindent
+\begin{itemize}
+    \item \textbf{Single Tree vs. Ensemble:} A single decision tree ($K=1$) performs significantly worse than an ensemble. The single tree has a Test MSE of 0.5701, while the ensemble with $K=100$ has a much lower Test MSE of 0.2592. The single tree, with a max depth of 20, is highly overfit to the training data. Using an ensemble (bagging) averages out this high variance, leading to a much better, more generalizable model.
+    \vspace{0.5em} 
+    \item \textbf{Overfitting as K Increases:} No, we do not need to worry about overfitting as the value of $K$ increases. As seen in the plot from  Figure 4, the Test MSE consistently decreases as $K$ gets larger. Bagging is an ensemble method that reduces variance. Adding more trees to the ensemble only serves to stabilize the average, and it does not increase the overall model complexity in a way that leads to overfitting.
+\end{itemize}
+
+% ================================
+\section*{Question 6: Generative AI Use}
+\noindent
+I used Gen AI tools primarily to help with boilerplate code and debugging. And for help with NumPy syntax formatting and specific method names.
+
+\end{document}

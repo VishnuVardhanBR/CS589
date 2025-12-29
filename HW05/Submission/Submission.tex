@@ -1,0 +1,234 @@
+\documentclass[11pt]{article}
+\usepackage{amsmath}
+\usepackage{geometry}
+\geometry{margin=1in}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{float} % Added for figure placement [H]
+\usepackage{url} % Added for better handling of underscores in text
+\pagecolor{white}
+
+% --- Author and Title Information ---
+\title{CS 589: Homework 05}
+\author{Vishnu Vardhan Reddy B.}
+
+\begin{document}
+
+\maketitle
+
+% ================================
+\section*{Question 1: Compute evaluation metrics for classification.}
+\noindent
+
+\subsection*{a. Class proportions}
+\noindent
+Total number of samples: $52+1+3+6+13+7+2+4+12 = 100$ \\
+True Flu: $52+1+3 = 56$ \\
+True COVID: $6+13+7 = 26$ \\
+True Pneumonia: $2+4+12 = 18$ \\
+\\
+Class proportions: \\
+Flu: $56/100 = 0.56$ \\
+COVID: $26/100 = 0.26$ \\
+Pneumonia: $18/100 = 0.18$
+
+\subsection*{b. Error Rate}
+\noindent
+Correct predictions: $52 + 13 + 12 = 77$ \\
+Incorrect predictions: $100 - 77 = 23$ \\
+Overall Error Rate: $23 / 100 = 0.23$ or $23\%$
+
+\subsection*{c. Balanced Error Rate}
+\noindent
+Per-class error rates: \\
+Flu Error Rate: $(1+3) / 56 = 4/56 \approx 0.0714$ \\
+COVID Error Rate: $(6+7) / 26 = 13/26 = 0.5000$ \\
+Pneumonia Error Rate: $(2+4) / 18 = 6/18 \approx 0.3333$ \\
+\\
+Balanced Error Rate (BER): $(4/56 + 13/26 + 6/18) / 3 \approx (0.0714 + 0.5000 + 0.3333) / 3 \approx 0.9047 / 3 \approx 0.3016$
+
+\subsection*{d. Precision (COVID as positive)}
+\noindent
+True Positives (TP) for COVID: 13 \\
+False Positives (FP) for COVID: Predictions of COVID when true was Flu or Pneumonia = $1 + 4 = 5$ \\
+Precision = TP / (TP + FP) = $13 / (13 + 5) = 13 / 18 \approx 0.7222$
+
+\subsection*{e. Recall (COVID as positive)}
+\noindent
+True Positives (TP) for COVID: 13 \\
+False Negatives (FN) for COVID: True COVID predicted as Flu or Pneumonia = $6 + 7 = 13$ \\
+Recall = TP / (TP + FN) = $13 / (13 + 13) = 13 / 26 = 0.5000$
+
+\subsection*{f. F1 Score (COVID as positive)}
+\noindent
+Precision (P) = $13/18$ \\
+Recall (R) = $13/26 = 0.5$ \\
+F1 Score = $2 \times (P \times R) / (P + R) = 2 \times (13/18 \times 0.5) / (13/18 + 0.5) = 2 \times (13/36) / (13/18 + 9/18) = (26/36) / (22/18) = (13/18) / (11/9) = (13/18) \times (9/11) = 13 / 22 \approx 0.5909$
+
+\subsection*{g. Misclassification Cost}
+\noindent
+Cost = (Pred Flu | True COVID) * Count + (Pred Pneumonia | True COVID) * Count + \\
+       (Pred COVID | True Flu) * Count + (Pred Pneumonia | True Flu) * Count + \\
+       (Pred Flu | True Pneumonia) * Count + (Pred COVID | True Pneumonia) * Count \\
+\\
+Cost = ($3000 \times 6$) + ($10000 \times 7$) + ($1500 \times 1$) + ($8500 \times 3$) + ($10000 \times 2$) + ($8000 \times 4$) \\
+Cost = $18000 + 70000 + 1500 + 25500 + 20000 + 32000$ \\
+Cost = $\$167,000$
+
+% ================================
+\section*{Question 2: Classifier Calibration}
+\noindent
+
+\subsection*{a. Test error rates}
+\noindent
+Using the provided training data, LogisticRegression (C=1.0, max\_iter=1000) and GaussianNB models were fitted. Their performance on the test set is: \\
+Test error rate (Logistic Regression): $0.1369$ \\
+Test error rate (GaussianNB): $0.1349$
+
+\subsection*{b. Calibration Curves}
+\noindent
+The calibration curves for both models were generated using \texttt{calibration.calibration\_curve} with \texttt{n\_bins=10}.
+
+\begin{figure}[H] % Using [H] from float package to place figure here
+\centering
+% --- IMPORTANT: Replace 'calibration_curve.png' with the actual path to your saved plot ---
+\includegraphics[width=0.7\textwidth]{calibration_curve.png} 
+\caption{Calibration Curves for Logistic Regression and Gaussian Naive Bayes.}
+\label{fig:calibration}
+\end{figure}
+
+\noindent
+Qualitative Differences: The Logistic Regression curve is much closer to the diagonal line (perfectly calibrated), indicating its predicted probabilities align well with the true frequencies across most bins. It shows slight overconfidence in some mid-range probability bins. The Gaussian Naive Bayes curve deviates significantly from the diagonal. It exhibits overconfidence for predicted probabilities below approximately 0.4 (predicting higher probabilities than observed frequencies) and underconfidence for probabilities above 0.4 (predicting lower probabilities than observed frequencies). The S-shape is characteristic of Naive Bayes models on this type of data.
+
+\subsection*{c. Expected Calibration Error}
+\noindent
+The Expected Calibration Error (ECE) was computed using the implemented function: \\
+ECE (Logistic Regression): $0.0201$ \\
+ECE (Gaussian NB): $0.1063$ \\
+
+\subsection*{d. Reasons for Calibration Differences}
+\noindent
+Logistic Regression directly models the probability $P(Y=1|X)$ using the logistic function, which naturally produces well-calibrated probabilities when the model assumptions hold reasonably well and the model is not severely over/underfit. Gaussian Naive Bayes, on the other hand, makes a strong assumption that features are conditionally independent given the class. When this assumption is violated (as it often is in real-world data), the resulting probability estimates calculated via Bayes' theorem can be systematically pushed towards 0 or 1, leading to poor calibration (often appearing overconfident for extreme probabilities and underconfident elsewhere, or vice versa, depending on the data structure).
+
+
+% ================================
+\section*{Question 3: Imbalanced Classification}
+\noindent
+
+\subsection*{a. Class Proportions}
+\noindent
+The class proportions for the training and test datasets are visualized below.
+
+% --- Training Data ---
+\begin{figure}[H]
+\centering
+% --- IMPORTANT: Replace 'train_proportions.png' with the actual path to your saved plot ---
+\includegraphics[width=0.5\textwidth]{train_proportions.png} 
+\caption{Class Proportions in the Training Data.}
+\label{fig:train_prop}
+\end{figure}
+
+% --- Test Data ---
+\begin{figure}[H]
+\centering
+% --- IMPORTANT: Replace 'test_proportions.png' with the actual path to your saved plot ---
+% --- NOTE: You need to generate this plot for the test set similar to how it was done for the training set in the notebook ---
+\includegraphics[width=0.5\textwidth]{test_proportions.png} 
+\caption{Class Proportions in the Test Data.}
+\label{fig:test_prop}
+\end{figure}
+
+\noindent
+Training proportions: red\_blood\_cell (Class 0): $\approx 0.79$, trophozoite (Class 1): $\approx 0.21$. \\
+Test proportions: red\_blood\_cell (Class 0): $\approx 0.78$, trophozoite (Class 1): $\approx 0.22$. \\
+Comparison: The test proportions are very similar to the training proportions and do not seem to be significantly different (i.e., not out of distribution). However there is imbalance between the proportion of negative and positive cases.
+
+\subsection*{b. Base Model Results}
+\noindent
+The standard MLP model was trained for 50 epochs. The results on the test set are: \\
+Overall error rate: $0.0910$ \\
+Error rate per class: \\
+  red\_blood\_cell: $0.0364$ \\
+  trophozoite: $0.2832$ \\
+Balanced Error Rate (BER): $0.1598$
+
+\subsection*{c. Balanced NLL Model Results}
+\noindent
+The MLP model was updated to use the balanced negative log likelihood loss and trained for 50 epochs. The class weights calculated were approximately $[0.000156, 0.000573]$. The results on the test set are: \\
+Overall error rate: $0.0890$ \\
+Error rate per class: \\
+  red\_blood\_cell: $0.0729$ \\
+  trophozoite: $0.1460$ \\
+Balanced Error Rate (BER): $0.1094$
+
+\subsection*{d. Discussion}
+\noindent
+Yes, learning the model using the balanced negative log likelihood significantly improved the Balanced Error Rate (BER), reducing it from $0.1598$ to $0.1094$. This improvement came primarily from reducing the error rate on the minority class (trophozoite) from $0.2832$ down to $0.1460$, at the cost of slightly increasing the error rate on the majority class (red\_blood\_cell) from $0.0364$ to $0.0729$. The impact on the overall test error rate was minimal, showing a slight improvement from $0.0910$ to $0.0890$. Training with balanced NLL successfully encouraged the model to pay more attention to the under-represented class, leading to a more balanced performance across classes.
+
+% ================================
+\section*{Question 4: Experiment Design}
+\noindent
+
+\subsection*{a. Train-Validation-Test Experiment}
+\noindent
+The learning set was split 80/20 into training and validation sets (random\_state=42). Ridge regression was trained for different alphas. \\
+Best alpha: $12.9155$ \\
+Corresponding Train MSE: $0.0016$ \\
+Corresponding Validation MSE: $0.5117$
+
+\subsection*{b. 5-Fold Cross-Validation Experiment}
+\noindent
+5-Fold Cross-Validation (shuffle=True, random\_state=42) was used on the learning set to select alpha. \\
+Best alpha: $1.6681$ \\
+Corresponding Avg. Train MSE: $0.000038$ (Note: This is very low, likely due to averaging over folds where the model fits the training part extremely well) \\
+Corresponding Avg. Cross-Validation MSE: $0.4549$
+
+\subsection*{c. Validation MSE vs. Alpha}
+\noindent
+The validation MSE curves for both experiment designs are shown below.
+
+\begin{figure}[H]
+\centering
+% --- IMPORTANT: Replace 'mse_vs_alpha.png' with the actual path to your saved plot ---
+\includegraphics[width=0.7\textwidth]{mse_vs_alpha.png} 
+\caption{Validation MSE vs. Alpha for Single Split and 5-Fold CV.}
+\label{fig:mse_alpha}
+\end{figure}
+
+\subsection*{d. Final Model Re-fits and Test MSE}
+\noindent
+The models were re-fitted on the entire learning set using the best alphas found. \\
+Model 1 (from Train-Val-Test): Best Alpha = $12.9155$, Test MSE = $0.3344$ \\
+Model 2 (from 5-Fold CV): Best Alpha = $1.6681$, Test MSE = $0.3101$ \\
+\\
+The 5-fold cross-validation design gave a better (lower) test set MSE ($0.3101$) compared to the single train-validation-test split ($0.3344$).
+
+\subsection*{e. Bonus: Stability Meta-Experiment}
+\noindent
+Approach Explanation: To assess the stability of the result from part (d), the entire experiment (parts a, b, and d) was repeated 50 times. In each repetition, a different random seed (from 0 to 49) was used for both the initial 80/20 train-validation split (for method 4a) and the KFold shuffling (for method 4b). The best alpha was determined independently by each method within each repetition, the models were retrained on the full learning set with their respective best alphas, and the final test MSE was recorded for both. This allows us to see how often each hyperparameter selection strategy leads to a better final test model under different random partitions of the learning data. \\
+\\
+Meta-Experiment Results (50 trials): \\
+5-Fold CV produced a better Test MSE in $21 / 50$ trials ($42.0\%$). \\
+Single Train-Val-Test produced a better Test MSE in $29 / 50$ trials ($58.0\%$). \\
+Average Test MSE (CV): $0.3206$ (Std: $0.0132$) \\
+Average Test MSE (TVT): $0.3312$ (Std: $0.0295$) \\
+
+\begin{figure}[H]
+\centering
+% --- IMPORTANT: Replace 'bonus_boxplot.png' with the actual path to your saved plot ---
+\includegraphics[width=0.6\textwidth]{bonus_boxplot.png} 
+\caption{Distribution of Test MSEs over 50 Random Seeds.}
+\label{fig:bonus_boxplot}
+\end{figure}
+
+\noindent
+Discussion: Although the single train-val-test split yielded a better test MSE more often (58\% of trials) in this meta-experiment, the average test MSE for the 5-Fold CV method was lower ($0.3206$ vs $0.3312$). Furthermore, the standard deviation of the test MSEs for the CV method was much smaller ($0.0132$) compared to the single split method ($0.0295$). This suggests that while a single split might occasionally get lucky and find a better hyperparameter due to the specific validation set chosen, the 5-Fold CV method is more stable and reliable, producing models with lower error on average and less variability depending on the random partitioning.
+
+% ================================
+\section*{Question 5: Generative AI Use}
+\noindent
+
+I used AI tools to assist with coding certain parts, specifically for method syntax and plotting with Matplotlib.
+
+
+\end{document}

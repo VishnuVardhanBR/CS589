@@ -1,0 +1,77 @@
+\documentclass[11pt]{article}
+
+\usepackage{fullpage}
+\parindent=0in
+\input{testpoints}
+
+\usepackage{graphicx}
+\usepackage[english]{babel}
+\usepackage[latin1]{inputenc}
+\usepackage{times}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{hyperref}
+\usepackage{color}
+
+\newcommand{\argmax}{\mathop{\arg\max}}
+\newcommand{\deriv}[1]{\frac{\partial}{\partial {#1}} }
+\newcommand{\dsep}{\mbox{dsep}}
+\newcommand{\Pa}{\mathop{Pa}}
+\newcommand{\ND}{\mbox{ND}}
+\newcommand{\De}{\mbox{De}}
+\newcommand{\Ch}{\mbox{Ch}}
+\newcommand{\graphG}{{\mathcal{G}}}
+\newcommand{\graphH}{{\mathcal{H}}}
+\newcommand{\setA}{\mathcal{A}}
+\newcommand{\setB}{\mathcal{B}}
+\newcommand{\setS}{\mathcal{S}}
+\newcommand{\setV}{\mathcal{V}}
+\DeclareMathOperator*{\union}{\bigcup}
+\DeclareMathOperator*{\intersection}{\bigcap}
+\DeclareMathOperator*{\Val}{Val}
+\newcommand{\mbf}[1]{{\mathbf{#1}}}
+\newcommand{\eq}{\!=\!}
+
+\newenvironment{solution}{\par\noindent\textbf{Answer:} }{\par}
+
+\begin{document}
+
+{\centering
+  \rule{6.3in}{2pt}
+  \vspace{1em}
+  {\Large
+    CS589: Machine Learning - Fall 2025\\
+    Homework 1: Classification\\
+  }
+  \vspace{1em}
+  Assigned: Thursday, September 10. Due: Wednesday, September 17 at 8:00pm \\
+  \vspace{0.1em}
+  \rule{6.3in}{1.5pt}
+}
+\vspace{1pc}
+
+% Example problem with your answer
+\begin{problem}{10} \textbf{KNN and Missing Data:} Missing data is a common problem in real-world applications of machine learning methods. In the classification case, different feature vectors $\mbf{x}_i=[\mbf{x}_{i1},...,\mbf{x}_{iD}]\in\mathbb{R}^D$ can have missing values on any subset of the dimensions. We can keep track of which dimensions have valid data and which have missing data using a binary mask vector $\mbf{m}_i=[\mbf{m}_{i1},...,\mbf{m}_{iD}]\in\{0,1\}^D$. For example, if $\mbf{x}_1=[5.0, ?, 1.0]$, then $\mbf{m}_1=[1, 0, 1]$. Explain how you could modify the standard KNN classifier so that it can be applied to a data set with missing values represented as a set of tuples $(y_i,\mbf{x}_i,\mbf{m}_i)$.
+\end{problem}
+
+\begin{solution}
+To modify the standard KNN classifier for missing data, we can adjust the distance calculation.  
+Each feature vector $\mbf{x}_i$ has an associated binary mask $\mbf{m}_i$, where $m_{i,d}=1$ if the $d$-th feature is present and $0$ if it is missing.  
+When computing the distance between a new point $\mbf{x}$ with mask $\mbf{m}$ and a training point $\mbf{x}_i$ with mask $\mbf{m}_i$, we only compare features that are present in both vectors.  
+
+The modified Euclidean distance is:
+\[
+d'(\mbf{x}, \mbf{x}_i) = \sqrt{\sum_{d=1}^D m_d \cdot m_{i,d} \cdot (x_d - x_{i,d})^2 }.
+\]
+
+Here, the product $m_d \cdot m_{i,d}$ equals $1$ only if both $\mbf{x}$ and $\mbf{x}_i$ have valid values for dimension $d$, otherwise the term is ignored.  
+
+After computing this modified distance for all training points, the rest of the KNN algorithm remains unchanged: we select the $K$ nearest neighbors and predict the class by majority vote.  
+
+One limitation of this method is that if many features are missing, the comparison may be based on very few dimensions, which can reduce accuracy.  
+An alternative approach is to impute missing values, for example by replacing them with the mean of the feature, but this may introduce bias into the data.
+\end{solution}
+
+\showpoints
+\end{document}

@@ -1,0 +1,247 @@
+\documentclass[11pt]{article}
+\usepackage{amsmath}
+\usepackage{geometry}
+\geometry{margin=1in}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{listings} % For code highlighting
+\usepackage{float}    % For figure placement
+\usepackage{hyperref} % For clickable links (optional but good practice)
+
+% Define colors for code highlighting
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+% Code styling setup
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=4
+}
+
+\lstset{style=mystyle, language=Python}
+
+\title{CS589: Homework 6}
+\author{Vishnu Vardhan Reddy Bheem Reddy}
+\date{November 20, 2025}
+
+\begin{document}
+
+\maketitle
+
+% ================================
+\section*{Question 1: Active Learning}
+
+\subsection*{a. Random Acquisition}
+Below is the implementation of the \texttt{random\_acquisition} function. It selects indices uniformly at random from the available pool.
+
+\begin{lstlisting}
+def random_acquisition(Xpool, classifier, batch_size=5):
+    """ Selects batch_size data cases from Xpool to acquire at random. """
+    N_pool = Xpool.shape[0]
+    indices = np.random.choice(N_pool, size=batch_size, replace=False)
+    return indices
+\end{lstlisting}
+
+\subsection*{b. Entropy Acquisition}
+Below is the implementation of the \texttt{entropy\_acquisition} function. It calculates the entropy of the predictive distribution for each instance in the pool and selects those with the highest uncertainty.
+
+\begin{lstlisting}
+def entropy_acquisition(Xpool, classifier, batch_size=5):
+    """ Selects the batch_size data cases from Xpool that have the highest entropy. """
+    probas = classifier.predict_proba(Xpool)
+    
+    # Calculate entropy: H(x) = -sum(p * log(p))
+    plogp = np.where(probas > 0, probas * np.log(probas), 0)
+    
+    entropies = -np.sum(plogp, axis=1)
+    
+    # Sort indices by entropy (ascending) and take the last batch_size (highest entropy)
+    indices = np.argsort(entropies)[-batch_size:]
+    return indices.tolist()
+\end{lstlisting}
+
+\subsection*{c. Labeling Oracle}
+The \texttt{labeling\_oracle} moves data from the pool to the training set.
+
+\begin{lstlisting}
+def labeling_oracle(Xtr, Ytr, Xpool, Ypool, inds):
+    """ Simulates labeling by moving points from pool to training set. """
+    X_acquire = Xpool[inds]
+    Y_acquire = Ypool[inds]
+
+    # Add to training set
+    Xtr_updated = np.vstack((Xtr, X_acquire))
+    Ytr_updated = np.concatenate((Ytr, Y_acquire))
+
+    # Remove from pool
+    Xpool_updated = np.delete(Xpool, inds, axis=0)
+    Ypool_updated = np.delete(Ypool, inds, axis=0)
+
+    return Xtr_updated, Ytr_updated, Xpool_updated, Ypool_updated
+\end{lstlisting}
+
+\subsection*{d. Active Learning Loop}
+The loop iterates through the active learning process, training the model, evaluating error, and acquiring new points.
+
+\begin{lstlisting}
+def active_learning_loop(Xtr, Ytr, Xpool, Ypool, Xtest, Ytest, acquisition_function, num_iter=100, batch_size=5):
+    test_errors = []
+
+    Xtr_curr = Xtr.copy()
+    Ytr_curr = Ytr.copy()
+    Xpool_curr = Xpool.copy()
+    Ypool_curr = Ypool.copy()
+
+    for i in range(num_iter):
+        # 1. Initialize and fit classifier
+        classifier = LogisticRegression(max_iter=1000)
+        classifier.fit(Xtr_curr, Ytr_curr)
+
+        # 4. Compute test error
+        score = classifier.score(Xtest, Ytest)
+        test_errors.append(1.0 - score)
+
+        # 2. Call acquisition function
+        inds_to_acquire = acquisition_function(Xpool_curr, classifier, batch_size)
+
+        # 3. Call labeling oracle
+        Xtr_curr, Ytr_curr, Xpool_curr, Ypool_curr = labeling_oracle(
+            Xtr_curr, Ytr_curr, Xpool_curr, Ypool_curr, inds_to_acquire
+        )
+
+    return test_errors
+\end{lstlisting}
+
+\subsection*{e. Experimental Results}
+The plot below compares the test error rate of random acquisition versus entropy-based acquisition as the size of the training set increases.
+
+\begin{figure}[H]
+\centering
+% Ensure image filename matches your actual file
+\includegraphics[width=0.85\textwidth]{q1e_active_learning_performance.png}
+\caption{Test Error Rate vs. Training Set Size for Random and Entropy Acquisition.}
+\label{fig:active_learning}
+\end{figure}
+
+\noindent \textbf{Analysis:} \\
+Yes, entropy-based active learning outperforms the random baseline for this data set. As shown in Figure \ref{fig:active_learning}, the test error for the entropy strategy (orange line) decreases more rapidly than the random strategy (blue line). 
+
+This result demonstrates higher sample efficiency: the entropy method reaches a test error of roughly 0.08 with only $\sim$400 samples, whereas random acquisition requires nearly 600 samples to reach similar performance. This confirms that querying instances near the decision boundary (those with high entropy/uncertainty) provides significantly more information gain per labeled instance than selecting samples blindly.
+
+% ================================
+\section*{Question 2: Clustering}
+
+\subsection*{a. Cluster Center}
+The function \texttt{cluster\_center} computes the mean of the data points assigned to a specific cluster.
+
+\begin{lstlisting}
+def cluster_center(X, ind):
+    if len(ind) == 0:
+        return np.zeros(X.shape[1])
+    return X[ind].mean(axis=0)
+\end{lstlisting}
+
+\noindent Below is the image of the global centroid (assuming all data is in one cluster):
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.3\textwidth]{q2a_centroid.png}
+\caption{Centroid of the entire training set.}
+\label{fig:q2a_centroid}
+\end{figure}
+
+\subsection*{b. Cluster Objective}
+The function \texttt{cluster\_objective} calculates the total within-cluster sum of squared distances.
+
+\begin{lstlisting}
+def cluster_objective(centers, X, z):
+    assigned_centers = centers[z]
+    total_ssd = np.sum((X - assigned_centers)**2)
+    return total_ssd
+\end{lstlisting}
+
+\noindent \textbf{Objective Function Value (K=1):} 631,481.5625
+
+\subsection*{c. K-Means Clustering}
+I ran K-Means with $K=10$ and 20 restarts.
+
+\begin{itemize}
+    \item \textbf{Cluster Objective Value:} 338,838.125
+\end{itemize}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\textwidth]{q2c_cluster_counts.png}
+\caption{K-Means: Number of data cases per cluster.}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=1.0\textwidth]{q2c_centroids.png}
+\caption{K-Means: Cluster Centroids.}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=1.0\textwidth]{q2c_label_distributions.png}
+\caption{K-Means: True label distribution within each cluster.}
+\end{figure}
+
+\subsection*{d. Hierarchical Agglomerative Clustering}
+I ran Hierarchical Clustering with $K=10$ using average linkage.
+
+\begin{itemize}
+    \item \textbf{Cluster Objective Value:} 561,044.1875
+\end{itemize}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\textwidth]{q2d_cluster_counts.png}
+\caption{Hierarchical: Number of data cases per cluster.}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=1.0\textwidth]{q2d_centroids.png}
+\caption{Hierarchical: Cluster Centroids.}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=1.0\textwidth]{q2d_label_distributions.png}
+\caption{Hierarchical: True label distribution within each cluster.}
+\end{figure}
+
+\subsection*{e. Comparison and Analysis}
+\textbf{Comparison of Methods:}
+Comparing the two methods, \textbf{K-Means appears to be doing a much better job} on this data set.
+
+\begin{enumerate}
+    \item \textbf{Objective Function:} K-Means achieved a significantly lower objective function value (338,838) compared to Hierarchical clustering (561,044). Since the objective measures the within-cluster sum of squared errors, a lower value indicates tighter, more compact clusters.
+    
+    \item \textbf{Cluster Balance:} The bar charts showing data cases per cluster reveal weakness in the Hierarchical approach using average linkage on this high-dimensional data. Hierarchical clustering resulted in highly unbalanced clusters, one massive cluster (Cluster 1) containing nearly all the data, and several smaller clusters acting as outliers. This is due to the chaining effect and the difficulty of Euclidean distance discrimination in high-dimensional space. Meanwhile, K-Means produced a relatively even distribution of data points across the 10 clusters.
+    
+    \item \textbf{Correspondence to Digits:} Checking centroids in K-Means shows clear digit-like shapes (e.g., distinct 0s, 1s, etc.), indicating that the clusters correspond well to specific digit types. The label distribution plots further confirm that K-Means clusters are relatively pure. The Hierarchical centroids, show high impurity (blurriness) in the large cluster, failing to separate the digit types effectively.
+\end{enumerate}
+
+\section*{Question 3: Generative AI Statement}
+
+I used AI tools to assist with coding certain parts, like for method syntax (such as `np.where` for entropy stability) and plotting code with Matplotlib.
+
+\end{document}
